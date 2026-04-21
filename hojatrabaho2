@@ -1,0 +1,93 @@
+import tkinter as tk
+from tkinter import simpledialog, messagebox
+
+class Nodo:
+    def __init__(self, valor):
+        self.valor = valor
+        self.izq = None
+        self.der = None
+
+# Prioridad de operadores
+def prioridad(op):
+    if op in ('+', '-'): return 1
+    if op in ('*', '/'): return 2
+    return 0
+
+# Convertir infija a postfija (Shunting Yard)
+def infija_a_postfija(expr):
+    salida = []
+    pila = []
+    tokens = expr.replace('(', ' ( ').replace(')', ' ) ').split()
+    for t in tokens:
+        if t.isdigit():
+            salida.append(t)
+        elif t == '(':
+            pila.append(t)
+        elif t == ')':
+            while pila and pila[-1] != '(':
+                salida.append(pila.pop())
+            pila.pop()
+        else:
+            while pila and prioridad(pila[-1]) >= prioridad(t):
+                salida.append(pila.pop())
+            pila.append(t)
+    while pila:
+        salida.append(pila.pop())
+    return salida
+
+# Construir árbol desde postfija
+def construir_arbol(postfija):
+    pila = []
+    for t in postfija:
+        if t.isdigit():
+            pila.append(Nodo(t))
+        else:
+            nodo = Nodo(t)
+            nodo.der = pila.pop()
+            nodo.izq = pila.pop()
+            pila.append(nodo)
+    return pila[0]
+
+# Dibujar árbol en canvas
+def dibujar(canvas, nodo, x, y, dx):
+    if not nodo:
+        return
+    r = 18
+    canvas.create_oval(x-r, y-r, x+r, y+r, fill='white')
+    canvas.create_text(x, y, text=nodo.valor, font=('Arial', 12, 'bold'))
+    if nodo.izq:
+        canvas.create_line(x, y+r, x-dx, y+60-r)
+        dibujar(canvas, nodo.izq, x-dx, y+60, dx/2)
+    if nodo.der:
+        canvas.create_line(x, y+r, x+dx, y+60-r)
+        dibujar(canvas, nodo.der, x+dx, y+60, dx/2)
+
+# Ejecutar programa
+def generar():
+    expr = entrada.get()
+    try:
+        post = infija_a_postfija(expr)
+        raiz = construir_arbol(post)
+        canvas.delete('all')
+        dibujar(canvas, raiz, 500, 40, 220)
+    except Exception:
+        messagebox.showerror('Error', 'Expresión no válida. Use espacios entre números y operadores.')
+
+ventana = tk.Tk()
+ventana.title('Árbol de Expresiones')
+ventana.geometry('1000x600')
+
+frame = tk.Frame(ventana)
+frame.pack(pady=10)
+
+tk.Label(frame, text='Expresión:').pack(side='left')
+entrada = tk.Entry(frame, width=40)
+entrada.pack(side='left', padx=5)
+entrada.insert(0, '3 * ( 9 - 3 * 4 )')
+
+tk.Button(frame, text='Generar Árbol', command=generar).pack(side='left')
+
+canvas = tk.Canvas(ventana, width=980, height=520, bg='white')
+canvas.pack(pady=10)
+
+ventana.mainloop()
